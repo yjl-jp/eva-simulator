@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新世紀エヴァンゲリオン～未来への咆哮～</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #fff;
+      color: red;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin: 10px;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #result {
+      font-size: 5em;
+      letter-spacing: 0.3em;
+      margin: 20px;
+      transition: color 0.3s ease;
+    }
+    #rushResult {
+      position: fixed;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: green;
+      opacity: 1;
+      transition: opacity 1s ease;
+      display: none;
+    }
+    #impactModeLabel {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      color: gold;
+      background-color: black;
+      padding: 5px 10px;
+      font-weight: bold;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <button onclick="charge()">1万円投入</button>
+  <button onclick="loanBalls()">貸出</button>
+  <h1>新世紀エヴァンゲリオン～未来への咆哮～</h1>
+  <p>所持金: <span id="yen">0</span> 円</p>
+  <div>
+    <span id="totalHits">大当たり：0回</span>
+    <span id="comboCount">連チャン：0回</span>
+    <span id="rushPayout">獲得：0玉</span>
+  </div>
+  <button onclick="debouncedInsertBall()">START</button>
+  <button onclick="forceStartGame()">強制大当たり</button>
+  <span id="ballDisplay">0玉</span>
+  <div id="result"></div>
+  <div id="impactModeLabel">IMPACT MODE</div>
+  <div id="rushResult"></div>
+
+  <script>
+    let yen = 0;
+    let balls = 0;
+    let totalHits = 0;
+    let currentCombo = 0;
+    let rushRemaining = 163;  // 初始160回
+    let rushBalls = 0;
+    let inRush = false;
+    let debounceTimeout;  // 防抖超时
+
+    const colorMap = {
+      1: 'crimson', 2: 'orange', 3: 'red', 4: 'blue',
+      5: 'green', 6: 'purple', 7: 'gold', 8: 'teal', 9: 'pink'
+    };
+
+    // 更新所持金和玉数
+    function updateDisplay() {
+      document.getElementById("yen").textContent = Math.floor(yen);
+      document.getElementById("ballDisplay").textContent = balls > 0 ? `${balls}玉` : "0玉";
+    }
+
+    // 更新状态
+    function updateStatus() {
+      document.getElementById("totalHits").textContent = `大当たり：${totalHits}回`;
+      document.getElementById("comboCount").textContent = `連チャン：${currentCombo}回`;
+      document.getElementById("rushPayout").textContent = `獲得：${rushBalls}玉`;
+      const rr = document.getElementById("rushResult");
+      if (rushRemaining > 0) {
+        rr.style.display = "block";
+        rr.textContent = `RUSH 残り：${rushRemaining}回`;
+      } else {
+        rr.style.display = "none";
+      }
+    }
+
+    function charge() {
+      yen += 10000;
+      updateDisplay();
+    }
+
+    function loanBalls() {
+      const cost = 1000;
+      if (yen < cost) {
+        alert("所持金が不足しています。チャージしてください。");
+        return;
+      }
+      yen -= cost;
+      balls += 125;
+      updateDisplay();
+    }
+
+    // 按钮防抖函数，避免多次点击
+    function debouncedInsertBall() {
+      if (debounceTimeout) return;
+      runGame();  // 运行游戏
+      debounceTimeout = setTimeout(() => {
+        debounceTimeout = null;
+      }, 700);
+    }
+
+    // 判断是否中奖
+    function checkHit(ST=false) {
+      const rand = Math.floor(Math.random() * 65536);  // 16bit 随机数
+      if(!ST){
+           if (rand < Math.floor(65536 / 319.7)) {
+            return true;  // 中了大当
+          }
+          return false;  // 没中
+      }else{
+          if (rand < Math.floor(65536 / 99.4)) {
+            return true;  // 中了大当
+          }
+          return false;  // 没中
+      }
+    }
+
+    // 生成不重复的三个数字
+    function generateResult() {
+     const result = [];
+  while (result.length < 3) {
+    const num = Math.floor(Math.random() * 9) + 1;
+    if (!result.includes(num)) {
+      result.push(num);
+    }
+  }
+  return result;  // 返回包含 3 个不同数字的数组
+
+
+
+    }
+    // 生成相同的三个数字
+    function generateIdenticalResult() {
+      const a = Math.floor(Math.random() * 9) + 1;
+      return [a, a, a];  // 返回相同的三个数字
+    }
+
+    
+
+    // 动画显示结果，数字依次显示
+    function displayResult(result) {
+        const resultElem = document.getElementById("result");
+        resultElem.textContent = '';  // 清空原始内容，确保没有多余的字符
+
+        // 检查结果的长度，确保我们只处理3个数字
+        if (result.length === 3) {
+            result.forEach((num, index) => {
+                // 为每个数字增加延时显示
+                setTimeout(() => {
+                    resultElem.innerHTML += `<span style='color: ${colorMap[num]}'>${num}</span>`;
+                }, 500 * index);  // 每个数字显示500ms后依次显示
+            });
+        }
+
+       
+    }
+
+    // 运行游戏，判断是否中奖，并生成抽选结果
+    function runGame(ST=false) {
+      if (balls < 12.5 && !ST) {
+        alert("玉が不足しています。貸出を行ってください。");
+        return;
+      }
+      if(!ST){
+          balls -= 12.5;  // 每次抽选消耗12.5玉
+          updateDisplay();
+      }
+
+      const isWin = checkHit(ST);  // 判断是否中奖
+      if (isWin) {
+        totalHits++;  // 如果中奖，大当次数+1
+        currentCombo++
+      }
+      const result = generateResult();  // 生成抽选结果
+      //console.log(result);
+      displayResult(result);  // 显示结果
+    }
+
+    // 强制大当按钮点击时，直接进入游戏并标记为中奖
+function forceStartGame() {
+  totalHits++;  // 强制大当
+  currentCombo++;
+  const result = generateIdenticalResult();  // 生成相同的抽选结果
+  displayResult(result);  // 显示结果
+  
+  // 先判断是否直接进入 ST 模式（59%的概率）
+  const rand = Math.floor(Math.random() * 65536); // 生成 16bit 随机数
+  if (rand < Math.floor(65536 * 0.59)) {
+    // 成功进入 ST 模式（IMPACT MODE）
+    inRush = true;
+    rushRemaining = 163; // ST 模式剩余 163 回
+    rushBalls = 1500;  // 每次进入 ST 获得 1500 玉
+    console.log("IMPACT MODE 突入！");
+    updateStatus();  // 更新状态
+    document.getElementById("impactModeLabel").style.display = "inline-block"; // 显示IMPACT MODE
+    document.getElementById("impactModeLabel").textContent = "IMPACT MODE 突入！"; // 更新文字
+    const chanceRush = () => {
+      // 每次抽选后判断，如果没有进入 ST 则结束
+      if (rushRemaining <= 0) {
+        console.log("IMPACT MODE 突入继续失败");
+        return; // 如果100次都没中，结束
+      }
+      
+      
+      // 判断是否在 Chance Time 中中奖
+      if (rand < Math.floor(65536 / 99.4)) {
+        // 成功进入 ST 模式（IMPACT MODE）
+        inRush = true;
+        rushRemaining = 163; // 进入 ST 模式
+        rushBalls = 1500;
+        console.log("IMPACT MODE 继续突入！");
+        updateStatus();
+        runGame(true);  // 运行游戏（ST模式）
+      } else {
+        //rushRemaining--;  // 每次抽选后，减1
+        setTimeout(chanceRush, 800);  // 每次抽选间隔 800ms
+      }
+    };
+    chanceRush();  // 开始运行 Chance Time
+
+  } else {
+    // 进入 チャンスタイム 模式（100 回）
+    rushRemaining = 100;
+     rushBalls = 1500;
+    console.log("チャンスタイム 模式");
+    document.getElementById("impactModeLabel").style.display = "inline-block"; // 显示IMPACT MODE
+    document.getElementById("impactModeLabel").textContent = "チャンスタイム"; // 更新文字
+    const chanceRun = () => {
+      // 每次抽选后判断，如果没有进入 ST 则结束
+      if (rushRemaining <= 0) {
+        console.log("チャンスタイム失败");
+        return; // 如果100次都没中，结束
+      }
+      
+     
+      // 判断是否在 Chance Time 中中奖
+      if (rand < Math.floor(65536 / 319.7)) {
+        // 成功进入 ST 模式（IMPACT MODE）
+        inRush = true;
+        rushRemaining = 163; // 进入 ST 模式
+        rushBalls = 1500;
+        console.log("IMPACT MODE 突入！");
+        updateStatus();
+        runGame(true);  // 运行游戏（ST模式）
+      } else {
+        //rushRemaining--;  // 每次抽选后，减1
+        setTimeout(chanceRun, 800);  // 每次抽选间隔 800ms
+      }
+    };
+    chanceRun();  // 开始运行 Chance Time
+  }
+
+  // 启动自动执行抽选
+  autoRunGame();
+}
+
+    // 自动执行抽选，直到剩余回合数为0
+    function autoRunGame() {
+      const interval = setInterval(() => {
+        if (rushRemaining <= 0) {
+          clearInterval(interval);
+          console.log("自动抽选结束");
+          return;
+        }
+        runGame(true);  // 运行游戏（ST模式）
+        rushRemaining--;  // 每次自动抽选后，减1
+        updateStatus();
+      }, 2000);  // 每次间隔1500ms（慢速动画）
+    }
+  </script>
+</body>
+</html>
