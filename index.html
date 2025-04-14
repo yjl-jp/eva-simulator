@@ -53,7 +53,8 @@
 </head>
 <body>
   <button onclick="charge()">1万円投入</button>
-  <button onclick="loanBalls()">貸出</button>
+   <button onclick="forceStartGame()">強制大当たり</button>
+
   <h1>新世紀エヴァンゲリオン～未来への咆哮～</h1>
   <p>所持金: <span id="yen">0</span> 円</p>
   <div>
@@ -62,7 +63,7 @@
     <span id="rushPayout">獲得：0玉</span>
   </div>
   <button onclick="debouncedInsertBall()">START</button>
-  <button onclick="forceStartGame()">強制大当たり</button>
+   <button onclick="loanBalls()">貸出</button>
   <span id="ballDisplay">0玉</span>
   <div id="result"></div>
   <div id="impactModeLabel">IMPACT MODE</div>
