@@ -53,7 +53,7 @@
 </head>
 <body>
   <button onclick="charge()">1万円投入</button>
-   <button onclick="forceStartGame()">強制大当たり</button>
+   <button id="forceBtn" onclick="forceStartGame()">強制大当たり</button>
 
   <h1>新世紀エヴァンゲリオン～未来への咆哮～</h1>
   <p>所持金: <span id="yen">0</span> 円</p>
@@ -208,6 +208,7 @@
 
     // 强制大当按钮点击时，直接进入游戏并标记为中奖
 function forceStartGame() {
+  document.getElementById("forceBtn").disabled = true;
   totalHits++;  // 强制大当
   currentCombo++;
   const result = generateIdenticalResult();  // 生成相同的抽选结果
@@ -290,6 +291,7 @@ function forceStartGame() {
         if (rushRemaining <= 0) {
           clearInterval(interval);
           console.log("自动抽选结束");
+          document.getElementById("forceBtn").disabled = false; // 重新启用按钮
           return;
         }
         runGame(true);  // 运行游戏（ST模式）
